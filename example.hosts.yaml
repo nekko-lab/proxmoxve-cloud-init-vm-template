@@ -1,0 +1,20 @@
+---
+all:
+  hosts:
+    node-0:
+      ansible_host: 192.168.100.10 # IP address of ProxmoxVE node
+      vmid: 90100 # vmid of VM template
+      network_bridge: vmbr0 # Bridge name to which the VM template connects
+    node-1:
+      ansible_host: 192.168.100.11
+      vmid: 90101
+      network_bridge: vmbr0
+    node-2:
+      ansible_host: 192.168.100.12
+      vmid: 90102
+      network_bridge: vmbr0
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_user: root # User name of the ProxmoxVE node
+    ansible_ssh_private_key_file: id_ed25519 # ssh private key of ProxmoxVE node
+    resource_pool: dev-pool # Resource pool to which the VM template belongs

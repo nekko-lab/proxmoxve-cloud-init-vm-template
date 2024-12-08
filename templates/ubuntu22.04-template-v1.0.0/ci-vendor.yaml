@@ -1,0 +1,59 @@
+#cloud-config
+write_files:
+  - content: |
+      #!/usr/bin/bash
+
+      if [ -f /etc/cloudinit/status.complete ]; then
+        # cloudinit already completed
+        echo "File exists."
+        exit 0
+      fi
+
+      # Start mark
+      touch /etc/cloudinit/status.excuting
+
+      # Backup default message
+      cp /etc/issue /etc/issue.default
+
+      # Show progress message
+      echo "" >> /etc/issue
+      echo "Setup in progress, please wait" >> /etc/issue
+      echo "" >> /etc/issue
+      systemctl restart getty@tty1
+
+      # Update and install qemu-guest-agent
+      apt update
+      apt upgrade -y
+      apt install -y qemu-guest-agent
+      systemctl enable qemu-guest-agent
+
+      # Setting firewall
+      ufw allow 22/tcp
+      ufw enable
+
+      # Show startup message
+      cat /etc/issue.default > /etc/issue
+      echo "nc-template/ubuntu v0.1.1" >> /etc/issue
+      echo "" >> /etc/issue
+      echo "    ▓▓▓▓          " >> /etc/issue
+      echo "   ▒▒▒▒▒▒▒▒       " >> /etc/issue
+      echo "  ▒▒▒▒▒▒▒▒▒▒▒▒    " >> /etc/issue
+      echo "  ▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒ " >> /etc/issue
+      echo "  ▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒" >> /etc/issue
+      echo "  ▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒" >> /etc/issue
+      echo "  █▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒" >> /etc/issue
+      echo "  ████▓▓▓▓▓▓▓▓▒▒▒▒" >> /etc/issue
+      echo "   ██████▓▓▓▓▓▓▓▓ " >> /etc/issue
+      echo "" >> /etc/issue
+
+      # Complete mark
+      rm -rf /etc/cloudinit/status.excuting
+      touch /etc/cloudinit/status.complete
+
+      # Reboot
+      reboot
+    path: /etc/cloudinit/nc-vendor.sh
+runcmd:
+  - mkdir -p /etc/cloudinit
+  - chmod +x /etc/cloudinit/nc-vendor.sh
+  - sh -e /etc/cloudinit/nc-vendor.sh
