@@ -1,0 +1,6 @@
+# hosts files
+/*.hosts.yaml
+!/example.hosts.yaml
+
+# secrets
+/secret*
