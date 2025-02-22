@@ -27,4 +27,4 @@ ansible-playbook -i example.hosts.yaml templates/ubuntu22.04-template-v1.0.0/mai
 
 ## Reference
 
-- https://homelabing.fr/how-to-automate-proxmox-ve-using-ansible/
+- <https://homelabing.fr/how-to-automate-proxmox-ve-using-ansible/>
