@@ -4,7 +4,7 @@
   tasks:
     - name: Check to see if this playbook has been executed
       stat:
-        path: /var/lib/vz/snippets/ubuntu22.04-template-v1.0.1.executed
+        path: /var/lib/vz/snippets/ubuntu22.04-template-v0.1.0.executed
       register: executed_file_path
     - name: Create cloudinit directory
       file:
@@ -17,7 +17,7 @@
     - name: Copy cloudinit vendor file
       copy:
         src: ci-vendor.yaml
-        dest: /var/lib/vz/snippets/ubuntu22.04-template-v1.0.1.ci-vendor.yaml
+        dest: /var/lib/vz/snippets/ubuntu22.04-template-v0.1.0.ci-vendor.yaml
         owner: root
         group: root
         mode: '0644'
@@ -29,7 +29,7 @@
         group: root
         mode: '0644'
     - name: Create VM
-      shell: qm create {{vmid}} --name ubuntu22.04-template-v1.0.1 --pool {{resource_pool}} --cpu cputype=x86-64-v3 --core 4 --memory 4096 --balloon 1024 --scsihw virtio-scsi-single --net0 virtio,bridge={{network_bridge}} --ipconfig0 ip=dhcp,ip6=dhcp --agent enabled=1,freeze-fs-on-backup=1,fstrim_cloned_disks=0,type=virtio
+      shell: qm create {{vmid}} --name ubuntu22.04-template-v0.1.0 --pool {{resource_pool}} --cpu cputype=x86-64-v3 --core 4 --memory 4096 --balloon 1024 --scsihw virtio-scsi-single --net0 virtio,bridge={{network_bridge}} --ipconfig0 ip=dhcp,ip6=dhcp --agent enabled=1,freeze-fs-on-backup=1,fstrim_cloned_disks=0,type=virtio
       when: executed_file_path.stat.exists == False
     - name: Import cloudinit image
       shell: qm importdisk {{vmid}} /var/lib/vz/template/iso/ubuntu-22.04-server-cloudimg-amd64.img local-lvm
@@ -41,14 +41,14 @@
       shell: qm resize {{vmid}} scsi0 +30516M
       when: executed_file_path.stat.exists == False
     - name: Cloudinit setup
-      shell: qm set {{vmid}} --ciuser ncadmin --cipassword masato1234 --cicustom "vendor=local:snippets/ubuntu22.04-template-v1.0.1.ci-vendor.yaml" --ciupgrade 0
+      shell: qm set {{vmid}} --ciuser ncadmin --cipassword masato1234 --cicustom "vendor=local:snippets/ubuntu22.04-template-v0.1.0.ci-vendor.yaml" --ciupgrade 0
       when: executed_file_path.stat.exists == False
     - name: VM to template
       shell: qm template {{vmid}}
       when: executed_file_path.stat.exists == False
     - name: Record this playbook executed
       file:
-        path: /var/lib/vz/snippets/ubuntu22.04-template-v1.0.1.executed
+        path: /var/lib/vz/snippets/ubuntu22.04-template-v0.1.0.executed
         owner: root
         group: root
         mode: '0755'

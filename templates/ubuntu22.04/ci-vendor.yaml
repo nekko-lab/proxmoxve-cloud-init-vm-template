@@ -33,7 +33,7 @@ write_files:
 
       # Show startup message
       cat /etc/issue.default > /etc/issue
-      echo "nc-template/ubuntu v1.0.1" >> /etc/issue
+      echo "nc-template/ubuntu v0.1.0" >> /etc/issue
       echo "" >> /etc/issue
       echo "    ▓▓▓▓          " >> /etc/issue
       echo "   ▒▒▒▒▒▒▒▒       " >> /etc/issue
