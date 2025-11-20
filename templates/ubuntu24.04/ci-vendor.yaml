@@ -10,7 +10,7 @@ write_files:
       fi
 
       # Start mark
-      touch /etc/cloudinit/status.excuting
+      touch /etc/cloudinit/status.executing
 
       # Backup default message
       cp /etc/issue /etc/issue.default
@@ -29,7 +29,7 @@ write_files:
 
       # Setting firewall
       ufw allow 22/tcp
-      ufw enable
+      ufw --force enable
 
       # Show startup message
       cat /etc/issue.default > /etc/issue
@@ -47,7 +47,7 @@ write_files:
       echo "" >> /etc/issue
 
       # Complete mark
-      rm -rf /etc/cloudinit/status.excuting
+      rm -rf /etc/cloudinit/status.executing
       touch /etc/cloudinit/status.complete
 
       # Reboot
