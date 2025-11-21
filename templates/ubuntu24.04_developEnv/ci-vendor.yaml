@@ -1,0 +1,64 @@
+#cloud-config
+write_files:
+  - content: |
+      #!/usr/bin/bash
+
+      if [ -f /etc/cloudinit/status.complete ]; then
+        # --- cloudinit already completed --- #
+        echo "This VM has already completed its initial setup."
+        exit 0
+      fi
+
+      # --- Start Mark --- #
+      touch /etc/cloudinit/status.executing
+
+      # --- Backup Default Message configured by OS --- #
+      cp /etc/issue /etc/issue.default
+
+      # --- Show Progress Message --- #
+      cat > /etc/issue << 'EOF'
+      
+      Setup in progress, please wait
+      DO NOT POWER OFF OR REBOOT THE VM
+      EOF
+
+      systemctl restart getty@tty1
+
+      # --- Update and Install Development Environment Packages --- #
+      apt-get update
+      apt-get upgrade -y
+
+      # --- Install QEMU Guest Agent --- #
+      apt-get install -y qemu-guest-agent
+      systemctl enable qemu-guest-agent
+      
+      # --- Setting Firewall --- #
+      ufw allow 22/tcp
+      ufw --force enable
+
+      # --- Show Startup Message --- #
+      cat > /etc/issue << 'EOF'
+      nc-template/ubuntu-24.04-General v0.0.1 created by Sumyka
+
+          ▓▓▓▓          
+        ▒▒▒▒▒▒▒▒       
+        ▒▒▒▒▒▒▒▒▒▒▒▒    
+        ▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒ 
+        ▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒
+        ▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒
+        █▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒
+        ████▓▓▓▓▓▓▓▓▒▒▒▒
+        ██████▓▓▓▓▓▓▓▓ 
+      EOF
+
+      # --- Complete mark --- #
+      rm /etc/cloudinit/status.executing
+      touch /etc/cloudinit/status.complete
+
+      # --- Reboot --- #
+      reboot
+    path: /etc/cloudinit/nc-vendor.sh
+runcmd:
+  - mkdir -p /etc/cloudinit
+  - chmod +x /etc/cloudinit/nc-vendor.sh
+  - bash -e /etc/cloudinit/nc-vendor.sh
