@@ -44,7 +44,7 @@
     - name: Create VM
       shell: >
         qm create {{vmid}} --name {{template_name}} --pool {{resource_pool}}
-        --cpu cputype=x86-64-v3 --core 4 --memory 4096 --balloon 1024
+        --cpu cputype=x86-64-v3 --core 4 --memory 5120 --balloon 1024
         --scsihw virtio-scsi-single --net0 virtio,bridge={{network_bridge}}
         --ipconfig0 ip=dhcp,ip6=dhcp
         --agent enabled=1,freeze-fs-on-backup=1,fstrim_cloned_disks=0,type=virtio
