@@ -3,7 +3,7 @@
   become: yes
   vars:
     # templateを変数として定義
-    template_name: "ubuntu24.04-template-v0.1.0"
+    template_name: "ubuntu24.04-template-v1.0.0"
     image_url: "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
     image_dest: "/var/lib/vz/template/iso/ubuntu-24.04-server-cloudimg-amd64.img"
     snippet_path: "/var/lib/vz/snippets"
