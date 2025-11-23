@@ -33,7 +33,7 @@ write_files:
 
       # Show startup message
       cat /etc/issue.default > /etc/issue
-      echo "nc-template/ubuntu-24.04 v0.0.1 created by Sumyka" >> /etc/issue
+      echo "nc-template/ubuntu-24.04 v1.0.0 created by Sumyka" >> /etc/issue
       echo "" >> /etc/issue
       echo "    ▓▓▓▓          " >> /etc/issue
       echo "   ▒▒▒▒▒▒▒▒       " >> /etc/issue
