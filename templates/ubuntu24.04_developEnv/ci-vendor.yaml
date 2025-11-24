@@ -1,4 +1,7 @@
 #cloud-config
+# Refer to README.md for the design rationale of this script
+# https://github.com/nekko-lab/proxmoxve-cloud-init-vm-template/tree/Ubuntu24.04-General-template/templates/ubuntu24.04_developEnv/README.md
+
 write_files:
   - path: /etc/cloudinit/nc-vendor.sh
     permissions: '0755'
@@ -183,7 +186,7 @@ write_files:
 
   # --- Development environment setup systemd service --- #
   - path: /etc/systemd/system/cloudinit-dev-env.service
-    permissions: 'rw-r--r--'
+    permissions: '0644'
     content: |
       [Unit]
       Description=Cloud-init Development Environment Setup
