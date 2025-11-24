@@ -46,4 +46,4 @@ Details are listed below
 ### **Why is this template besed on cloud-init instead of using Packer?**
 SIMPLY BECAUSE I WASNT AWARE OF Packer AT THE TIME.
 I LOOKED IT UP, AND IT'S SUPRE CONVIENIENT!!!
-** I absolutely plan to adopt it in the future.**
+**I absolutely plan to adopt it in the future.**
