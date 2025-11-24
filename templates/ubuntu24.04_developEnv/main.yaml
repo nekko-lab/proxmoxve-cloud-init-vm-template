@@ -2,7 +2,7 @@
 - hosts: all
   become: yes
   vars:
-    # templateを変数として定義
+    # defiune VM name and template as variables
     template_name: "ubuntu24.04-General-template-v0.0.1"
     image_url: "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
     image_dest: "/var/lib/vz/template/iso/ubuntu-24.04-server-cloudimg-amd64.img"
@@ -39,8 +39,8 @@
         group: root
         mode: '0644'
 
-    # --- 以下、実行フラグファイルがない場合のみ実行 ---
-
+    # --- Execute the following only if the execution flag file does not exist ---
+    
     - name: Create VM
       shell: >
         qm create {{vmid}} --name {{template_name}} --pool {{resource_pool}}
