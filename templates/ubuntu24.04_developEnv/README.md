@@ -6,14 +6,14 @@ Details are listed below
 
 | Name | versions | how it was installed |
 | ---- | -------- | -------------------- |
-| Git  | 2.43.0 or more | ```apt-get upgrade``` |
-| Docker | 29.0.2 build 8108357 or more | from **Docker CE** Repository |
+| Git  | Latest Version | ```apt-get upgrade``` |
+| Docker | Latest LTS Version | from **Docker CE** Repository |
 | net-tools | - | ```apt-get install net-tools``` |
 | tree | - | ```apt-get install tree``` |
-| gcc / g++ | 13.30 or more | ```apt-get install build-essential``` |
-| GNU make | 4.3 or more | ```apt-get install build-essential``` |
-| Node.js / npm | v24.11.1 / v11.6.3 or more | from **NodeSource** Repository |
-| openJDK | 21.0.8 or more | ```apt-get install openjdk-21-jdk``` |
+| gcc / g++ | Latest Version | ```apt-get install build-essential``` |
+| GNU make | Latest Version | ```apt-get install build-essential``` |
+| Node.js / npm | Latest LTS Version | from **NodeSource** Repository |
+| openJDK | Latest Version| ```apt-get install openjdk-21-jdk``` |
 
 ## Srcipt Design Philosophy
 
