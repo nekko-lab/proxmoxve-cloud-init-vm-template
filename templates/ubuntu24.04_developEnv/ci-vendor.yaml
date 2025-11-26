@@ -1,0 +1,268 @@
+#cloud-config
+# Refer to README.md for the design rationale of this script
+# https://github.com/nekko-lab/proxmoxve-cloud-init-vm-template/tree/Ubuntu24.04-General-template/templates/ubuntu24.04_developEnv/README.md
+
+write_files:
+  - path: /etc/cloudinit/nc-vendor.sh
+    permissions: '0755'
+    content: |
+      #!/usr/bin/bash
+      set -euo pipefail
+
+      # --- Configure Logging --- #
+      exec > >(tee -a /var/log/cloudinit-vendor.log) 2>&1
+      echo "=== Vendor Setup Started at $(date) ==="
+
+      # --- Skip if already completed --- #
+      if [ -f /etc/cloudinit/status.complete ]; then
+      	echo "This VM has already completed its initial setup."
+      	exit 0
+      fi
+
+      # --- Check if already executing (prevent multiple executions) --- #
+      if [ -f /etc/cloudinit/status.executing ]; then
+      	echo "Setup is already executing. Exiting."
+      	exit 1
+      fi
+
+      # --- Mark as executing --- #
+      touch /etc/cloudinit/status.executing
+
+      # --- Backup default message --- #
+      if [ -f /etc/issue ] && [ ! -f /etc/issue.default ]; then
+      	cp /etc/issue /etc/issue.default
+      fi
+
+      # --- Display in-progress message --- #
+      cat > /etc/issue << 'EOF'
+
+      Setup process is still in progress, please wait
+      DO NOT POWER OFF OR REBOOT THE VM
+
+      EOF
+
+      systemctl restart getty@tty1 || true
+
+      # --- Running system update --- #
+      echo "--- Running system update ---"
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update
+      apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+
+      # --- Installing QEMU Guest Agent --- #
+      echo "--- Installing QEMU Guest Agent ---"
+      apt-get install -y qemu-guest-agent
+      systemctl enable qemu-guest-agent
+      systemctl start qemu-guest-agent
+
+      # --- Configuring firewall --- #
+      echo "--- Configuring firewall ---"
+      apt-get install -y ufw
+      ufw --force reset
+      ufw allow 22/tcp comment 'SSH'
+      ufw --force enable
+
+      # --- Setting startup message --- #
+      cat > /etc/issue << 'EOF'
+      nc-template/ubuntu-24.04-General v1.0.0 created by Sumyka
+
+          ▓▓▓▓          
+        ▒▒▒▒▒▒▒▒       
+        ▒▒▒▒▒▒▒▒▒▒▒▒    
+        ▓▓▓▒▒▒▒▒▒▒▒▒▒▒▒ 
+        ▓▓▓▓▓▓▒▒▒▒▒▒▒▒▒▒
+        ▓▓▓▓▓▓▓▓▓▒▒▒▒▒▒▒
+        █▓▓▓▓▓▓▓▓▓▓▓▒▒▒▒
+        ████▓▓▓▓▓▓▓▓▒▒▒▒
+        ██████▓▓▓▓▓▓▓▓ 
+
+      EOF
+
+      # --- Mark as complete --- #
+      rm -f /etc/cloudinit/status.executing
+      touch /etc/cloudinit/status.complete
+
+      echo "=== Vendor Setup Completed at $(date) ==="
+
+  # --- Development Environment Installation Script --- #
+  - path: /etc/cloudinit/nc-dev-env.sh
+    permissions: '0755'
+    content: |
+      #!/usr/bin/bash
+      set -euo pipefail
+
+      # --- Configure Logging --- #
+      exec > >(tee -a /var/log/cloudinit-dev-env.log) 2>&1
+      echo "=== Development Environment Setup Started at $(date) ==="
+
+      # --- Skip if already completed --- #
+      if [ -f /etc/cloudinit/dev-env.status.complete ]; then
+      	echo "Development environment installation already completed."
+      	exit 0
+      fi
+
+      # --- Check if already executing (prevent multiple executions) --- #
+      if [ -f /etc/cloudinit/dev-env.status.executing ]; then
+      	echo "Installation is already executing. Exiting."
+      	exit 1
+      fi
+
+      # --- Wait for vendor setup to complete --- #
+      max_wait=300
+      waited=0
+      while [ ! -f /etc/cloudinit/status.complete ] && [ "$waited" -lt "$max_wait" ]; do
+      	echo "Waiting for vendor setup to complete... ($waited/$max_wait)"
+      	sleep 5
+      	waited=$((waited + 5))
+      done
+
+      if [ ! -f /etc/cloudinit/status.complete ]; then
+      	echo "ERROR: Vendor setup did not complete in time"
+      	exit 1
+      fi
+
+      # --- Mark as executing --- #
+      touch /etc/cloudinit/dev-env.status.executing
+
+      # --- Running system update --- #
+      echo "--- Running system update ---"
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update
+      apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"
+
+      # --- Installing common development tools --- #
+      echo "--- Installing common development tools ---"
+      apt-get install -y net-tools tree build-essential git curl wget vim
+
+      # --- Installing Docker --- #
+      echo "--- Installing Docker ---"
+      apt-get install -y ca-certificates curl gnupg lsb-release
+
+      mkdir -p /etc/apt/keyrings
+      tmp_gpg_key=$(mktemp)
+      if ! curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o "$tmp_gpg_key"; then
+      	echo "ERROR: Failed to download Docker GPG key"
+      	rm -f "$tmp_gpg_key"
+      	exit 1
+      fi
+      gpg --dearmor -o /etc/apt/keyrings/docker.gpg "$tmp_gpg_key"
+      chmod a+r /etc/apt/keyrings/docker.gpg
+      rm -f "$tmp_gpg_key"
+
+      echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+        $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+      apt-get update
+      apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+      systemctl enable docker
+      systemctl start docker
+
+      # --- Adding ncadmin to docker group --- #
+      if id "ncadmin" &>/dev/null; then
+      	echo "--- Adding ncadmin to docker group ---"
+      	usermod -aG docker ncadmin
+      else
+      	echo "WARNING: ncadmin user does not exist, skipping docker group addition"
+      fi
+
+      # --- Installing Node.js LTS --- #
+      # --- Using NodeSource setup script --- #
+      curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
+      apt-get install -y nodejs
+
+      # --- Updating npm --- #
+      npm install -g npm@latest
+
+      # --- Installing OpenJDK 21 --- #
+      apt-get install -y openjdk-21-jdk
+
+      # --- Mark as complete --- #
+      rm -f /etc/cloudinit/dev-env.status.executing
+      touch /etc/cloudinit/dev-env.status.complete
+
+      echo "=== Development Environment Setup Completed at $(date) ==="
+
+  # --- Development environment setup systemd service --- #
+  - path: /etc/systemd/system/cloudinit-dev-env.service
+    permissions: '0644'
+    content: |
+      [Unit]
+      Description=Cloud-init Development Environment Setup
+      After=network-online.target
+      Wants=network-online.target
+      ConditionPathExists=!/etc/cloudinit/dev-env.status.complete
+
+      [Service]
+      Type=oneshot
+      ExecStart=/etc/cloudinit/nc-dev-env.sh
+      RemainAfterExit=yes
+      StandardOutput=journal
+      StandardError=journal
+
+      [Install]
+      WantedBy=multi-user.target
+
+  # --- Setup completion check script (optional) --- #
+  - path: /usr/local/bin/check-setup-status
+    permissions: '0755'
+    content: |
+      #!/usr/bin/bash
+      
+      echo "=== Cloud-init Setup Status ==="
+      echo ""
+      
+      if [ -f /etc/cloudinit/status.complete ]; then
+      	echo "✓ Vendor setup: COMPLETED"
+      elif [ -f /etc/cloudinit/status.executing ]; then
+      	echo "⧗ Vendor setup: IN PROGRESS"
+      else
+      	echo "✗ Vendor setup: NOT STARTED"
+      fi
+      
+      if [ -f /etc/cloudinit/dev-env.status.complete ]; then
+      	echo "✓ Development environment: COMPLETED"
+      elif [ -f /etc/cloudinit/dev-env.status.executing ]; then
+      	echo "⧗ Development environment: IN PROGRESS"
+      else
+      	echo "✗ Development environment: NOT STARTED"
+      fi
+      
+      echo ""
+      echo "=== Service Status ==="
+      systemctl is-active cloudinit-dev-env.service 2>/dev/null || echo "Service not running"
+      
+      echo ""
+      echo "=== Logs ==="
+      echo "Vendor setup log: /var/log/cloudinit-vendor.log"
+      echo "Dev env setup log: /var/log/cloudinit-dev-env.log"
+
+# --- Execution commands --- #
+runcmd:
+  # --- Creating directories --- #
+  - mkdir -p /etc/cloudinit
+  - mkdir -p /var/log
+  
+  # --- Enabling systemd service --- #
+  - systemctl daemon-reload
+  - systemctl enable cloudinit-dev-env.service
+  
+  # --- Executing vendor setup --- #
+  - bash /etc/cloudinit/nc-vendor.sh
+
+  # --- System cleanup --- #
+  - apt-get autoremove -y
+  - apt-get autoclean -y
+  - rm -rf /var/lib/apt/lists/*
+  # --- Rebooting (development environment will be automatically set up after reboot) --- #
+  - reboot
+
+# --- Timezone setting (optional) --- #
+timezone: Asia/Tokyo
+
+# --- Locale setting (optional) --- #
+locale: ja_JP.UTF-8
+
+# --- Final message --- #
+final_message: "Cloud-init setup phase 1 completed. System will reboot and continue with development environment installation."

@@ -1,0 +1,83 @@
+---
+- hosts: all
+  become: yes
+  vars:
+    # defiune VM name and template as variables
+    template_name: "ubuntu24.04-General-template-v1.0.0"
+    image_url: "https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
+    image_dest: "/var/lib/vz/template/iso/ubuntu-24.04-server-cloudimg-amd64.img"
+    snippet_path: "/var/lib/vz/snippets"
+    flag_file: "{{ snippet_path }}/{{ template_name }}.executed"
+
+  tasks:
+    - name: Check to see if this playbook has been executed
+      stat:
+        path: "{{ flag_file }}"
+      register: executed_file_path
+
+    - name: Create cloudinit directory
+      file:
+        path: "{{ snippet_path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy cloudinit vendor file
+      copy:
+        src: ci-vendor.yaml
+        dest: "{{ snippet_path }}/{{ template_name }}.ci-vendor.yaml"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Download cloudinit image (Ubuntu 24.04 Noble)
+      get_url:
+        url: "{{ image_url }}"
+        dest: "{{ image_dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    # --- Execute the following only if the execution flag file does not exist ---
+    
+    - name: Create VM
+      shell: >
+        qm create {{vmid}} --name {{template_name}} --pool {{resource_pool}}
+        --cpu cputype=x86-64-v3 --core 4 --memory 5120 --balloon 1024
+        --scsihw virtio-scsi-single --net0 virtio,bridge={{network_bridge}}
+        --ipconfig0 ip=dhcp,ip6=dhcp
+        --agent enabled=1,freeze-fs-on-backup=1,fstrim_cloned_disks=0,type=virtio
+      when: not executed_file_path.stat.exists
+
+    - name: Import cloudinit image
+      shell: qm importdisk {{vmid}} {{image_dest}} local-lvm
+      when: not executed_file_path.stat.exists
+
+    - name: Setup cloudinit disk
+      shell: qm set {{vmid}} --scsi0 local-lvm:vm-{{vmid}}-disk-0,ssd=1,discard=on,iothread=1 --ide2 local-lvm:cloudinit --boot order=scsi0
+      when: not executed_file_path.stat.exists
+
+    - name: System disk resize
+      shell: qm resize {{vmid}} scsi0 +30516M
+      when: not executed_file_path.stat.exists
+
+    - name: Cloudinit setup
+      shell: >
+        qm set {{vmid}} --ciuser ncadmin --cipassword masato1234
+        --cicustom "vendor=local:snippets/{{template_name}}.ci-vendor.yaml"
+        --ciupgrade 0
+      when: not executed_file_path.stat.exists
+
+    - name: VM to template
+      shell: qm template {{vmid}}
+      when: not executed_file_path.stat.exists
+
+    - name: Record this playbook executed
+      file:
+        path: "{{ flag_file }}"
+        state: touch
+        owner: root
+        group: root
+        mode: '0644'
+      when: not executed_file_path.stat.exists
